@@ -2,7 +2,7 @@ pipeline {
     agent {
         docker {
             image 'node:16'
-            args '-u root'
+            args '-u root --network=project2-compose_default -v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
     environment {
@@ -16,7 +16,7 @@ pipeline {
         }
         stage('Unit Tests') {
             steps {
-                sh 'npm test || true' // Allow tests to fail
+                sh 'npm test || true'
             }
         }
         stage('Security Scan') {
