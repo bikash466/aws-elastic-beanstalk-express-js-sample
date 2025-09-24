@@ -1,40 +1,75 @@
 pipeline {
     agent {
         docker {
-            image 'node:16'
-            args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
+            image 'node:16-bullseye'
+            args '-u root'
         }
     }
+
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
+        SNYK_TOKEN = credentials('snyk-token')  // Add Snyk token in Jenkins credentials
+        DOCKER_HOST = "tcp://docker:2376"
+        DOCKER_TLS_VERIFY = "1"
+        DOCKER_CERT_PATH = "/certs/client"
     }
+
+    options {
+        skipDefaultCheckout(false)
+        ansiColor('xterm')
+    }
+
     stages {
+        stage('Install System Dependencies') {
+            steps {
+                sh '''
+                    apt-get update
+                    apt-get install -y git docker.io curl gnupg lsb-release
+                '''
+            }
+        }
+
         stage('Checkout Code') {
             steps {
                 checkout scm
             }
         }
-        stage('Install Dependencies') {
+
+        stage('Install Node Modules') {
             steps {
-                sh 'npm install --prefer-offline --no-audit --progress=false'
+                sh 'npm install --save'
             }
         }
-        stage('Unit Tests') {
+
+        stage('Run Unit Tests') {
             steps {
-                sh 'npm test || true'
+                sh '''
+                    if npm run | grep -q "test"; then
+                        npm test
+                    else
+                        echo "No test script defined. Skipping tests."
+                    fi
+                '''
             }
         }
+
         stage('Security Scan') {
             steps {
-                sh 'npm install -g snyk'
-                sh 'snyk test --org=bikash466 --severity-threshold=high || true'
+                sh '''
+                    export SNYK_TOKEN=$SNYK_TOKEN
+                    npm install -g snyk
+                    snyk auth $SNYK_TOKEN
+                    snyk test --severity-threshold=high
+                '''
             }
         }
+
         stage('Build Docker Image') {
             steps {
                 sh 'docker build -t bikash466/node-app:latest .'
             }
         }
+
         stage('Push to Docker Hub') {
             steps {
                 sh '''
@@ -44,6 +79,7 @@ pipeline {
             }
         }
     }
+
     post {
         always {
             archiveArtifacts artifacts: '**/test-results/*.xml', allowEmptyArchive: true
@@ -57,3 +93,4 @@ pipeline {
         }
     }
 }
+
