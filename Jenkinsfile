@@ -11,10 +11,6 @@ pipeline {
              DOCKER_TLS_VERIFY = "1"
              DOCKER_CERT_PATH = "/certs/client"
          }
-         options {
-             skipDefaultCheckout(false)
-             ansiColor('xterm')
-         }
          stages {
              stage('Install System Dependencies') {
                  steps {
