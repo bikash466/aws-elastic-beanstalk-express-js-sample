@@ -2,16 +2,21 @@ pipeline {
     agent {
         docker {
             image 'node:16'
-            args '-u root --network=project2-compose_default -v /var/run/docker.sock:/var/run/docker.sock'
+            args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
     }
     stages {
+        stage('Checkout Code') {
+            steps {
+                checkout scm
+            }
+        }
         stage('Install Dependencies') {
             steps {
-                sh 'npm install --save'
+                sh 'npm install --prefer-offline --no-audit --progress=false'
             }
         }
         stage('Unit Tests') {
@@ -30,10 +35,12 @@ pipeline {
                 sh 'docker build -t bikash466/node-app:latest .'
             }
         }
-        stage('Push to Registry') {
+        stage('Push to Docker Hub') {
             steps {
-                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
-                sh 'docker push bikash466/node-app:latest'
+                sh '''
+                    echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin
+                    docker push bikash466/node-app:latest
+                '''
             }
         }
     }
@@ -41,6 +48,12 @@ pipeline {
         always {
             archiveArtifacts artifacts: '**/test-results/*.xml', allowEmptyArchive: true
             cleanWs()
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed. Check logs for details.'
         }
     }
 }
