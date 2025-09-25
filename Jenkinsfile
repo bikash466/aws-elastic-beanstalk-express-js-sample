@@ -2,12 +2,11 @@ pipeline {
     agent {
         docker {
             image 'node:16-bullseye'
-            args '-u root' // Removed --network argument
+            args '-u root --network=jenkins'
         }
     }
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
-        SNYK_TOKEN = credentials('SNYK_TOKEN')      // Added Snyk token
         DOCKER_HOST = "tcp://docker:2376"
         DOCKER_TLS_VERIFY = "1"
         DOCKER_CERT_PATH = "/certs/client"
@@ -45,7 +44,6 @@ pipeline {
         stage('Security Scan') {
             steps {
                 sh 'npm install -g snyk'
-                sh 'snyk auth $SNYK_TOKEN'
                 sh 'snyk test --org=bikash466 --severity-threshold=high || true'
             }
         }
@@ -76,4 +74,3 @@ pipeline {
         }
     }
 }
-
