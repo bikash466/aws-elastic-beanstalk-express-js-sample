@@ -63,10 +63,8 @@ pipeline {
     }
     post {
         always {
-            node { // Wrap to provide workspace context
-                archiveArtifacts artifacts: '**/test-results/*.xml', allowEmptyArchive: true
-                cleanWs()
-            }
+            archiveArtifacts artifacts: '**/test-results/*.xml', allowEmptyArchive: true
+            cleanWs()
         }
         success {
             echo 'Pipeline completed successfully!'
