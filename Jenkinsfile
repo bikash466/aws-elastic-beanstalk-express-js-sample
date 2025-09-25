@@ -2,7 +2,7 @@ pipeline {
          agent {
              docker {
                  image 'node:16-bullseye'
-                 args '-u root --network=project2-compose_default'
+                 args '-u root --network=project2-compose_jenkins'
              }
          }
          environment {
